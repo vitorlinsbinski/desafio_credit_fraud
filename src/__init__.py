@@ -1,7 +1,7 @@
-from .etl.CSVExtract import CSVExtract
+from .etl.CSVExtractor import CSVExtractor
 from .pipeline.CreditFraudPipeline import CreditFraudPipeline
 
 __all__ = [
-    "CSVExtract",
+    "CSVExtractor",
     "CreditFraudPipeline"
 ]

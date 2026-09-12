@@ -1,7 +1,7 @@
-from .CSVExtract import CSVExtract
+from .CSVExtractor import CSVExtractor
 from .DatabaseHandler import DatabaseHandler
 
 __all__ = [
-    "CSVExtract",
+    "CSVExtractor",
     "DatabaseHandler"
 ]

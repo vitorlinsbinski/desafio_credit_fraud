@@ -57,13 +57,13 @@ def dag_credit_fraud():
         csv_file_path = "/opt/airflow/data/raw/df_fraud_credit.csv"
         
         pipeline = CreditFraudPipeline(
+            execution_id=execution_id,
+            execution_timestamp=execution_timestamp,
+            source_pipeline=source_pipeline,
             database=database
         )
         
         pipeline.extract(
-            execution_id=execution_id,
-            execution_timestamp=execution_timestamp,
-            source_pipeline=source_pipeline,
             csv_file_path=csv_file_path,
             csv_separator=","
         )

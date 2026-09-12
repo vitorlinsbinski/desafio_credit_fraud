@@ -6,24 +6,30 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from src.etl import CSVExtract
+from src.etl import CSVExtractor
 from src.etl import DatabaseHandler
 
 CHUNK_SIZE = 100_000
 
 class CreditFraudPipeline:
-    def __init__(self, database: DatabaseHandler):
+    def __init__(
+        self, 
+        execution_id: str,
+        execution_timestamp: datetime,
+        source_pipeline: str,
+        database: DatabaseHandler
+    ):  
+        self.execution_id = execution_id
+        self.execution_timestamp = execution_timestamp
+        self.source_pipeline = source_pipeline
         self.database = database
     
     def extract(
         self,
-        execution_id: str,
-        execution_timestamp: datetime,
-        source_pipeline: str,
         csv_file_path: str,
         csv_separator: str = ",",
     ):
-        csv_extractor = CSVExtract(
+        csv_extractor = CSVExtractor(
             file_path=csv_file_path,
             separator=csv_separator,
             chunk_size=CHUNK_SIZE
@@ -31,9 +37,54 @@ class CreditFraudPipeline:
 
         source_file_name = Path(csv_file_path).name
         row_offset = 0
+        
+        insert_query = """
+            INSERT INTO raw.credit_fraud (
+                transaction_timestamp,
+                sending_address,
+                receiving_address,
+                amount,
+                transaction_type,
+                location_region,
+                ip_prefix,
+                login_frequency,
+                session_duration,
+                purchase_pattern,
+                age_group,
+                risk_score,
+                anomaly,
+                source_row_number,
+                source_hash,
+                source_pipeline,
+                execution_id,
+                execution_timestamp,
+                source_file_name
+            )
+            VALUES (
+                :transaction_timestamp,
+                :sending_address,
+                :receiving_address,
+                :amount,
+                :transaction_type,
+                :location_region,
+                :ip_prefix,
+                :login_frequency,
+                :session_duration,
+                :purchase_pattern,
+                :age_group,
+                :risk_score,
+                :anomaly,
+                :source_row_number,
+                :source_hash,
+                :source_pipeline,
+                :execution_id,
+                :execution_timestamp,
+                :source_file_name
+            )
+        """
 
         for i, chunk in enumerate(csv_extractor.read_chunks()):
-            if i == 1:
+            if i == 0:
                 logging.info(f"Schema do dataset de entrada: ")
                 chunk.info()
                 
@@ -55,15 +106,16 @@ class CreditFraudPipeline:
                 axis=1
             )
             
-            chunk["source_pipeline"] = source_pipeline
-            chunk["execution_id"] = execution_id
-            chunk["execution_timestamp"] = execution_timestamp
+            chunk["source_pipeline"] = self.source_pipeline
+            chunk["execution_id"] = self.execution_id
+            chunk["execution_timestamp"] = self.execution_timestamp
             chunk["source_file_name"] = source_file_name
             
-            self.database.insert_dataframe(
-                df=chunk,
-                schema="raw",
-                table="credit_fraud"
+            records = chunk.to_dict(orient="records")
+            
+            self.database.execute_many(
+                query=insert_query,
+                params=records
             )
             
             logger.info(

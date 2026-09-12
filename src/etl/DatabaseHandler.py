@@ -23,7 +23,7 @@ class DatabaseHandler:
             )
     
     def fetch_all(self, query: str, params: dict | None = None):
-        with self.engine.connect as conn:
+        with self.engine.connect() as conn:
             result = conn.execute(
                 text(query),
                 params or {}
@@ -38,12 +38,50 @@ class DatabaseHandler:
         
         return result.mappings().first()
     
+    def execute_many(
+        self,
+        query: str,
+        params: list[dict]
+    ) -> None:
+        with self.engine.begin() as conn:
+            conn.execute(
+                text(query),
+                params
+            )
+    
+    def fetch_dataframe(
+        self,
+        query: str,
+        params: dict | None = None
+    ) -> pd.DataFrame:
+        return pd.read_sql(
+            sql=text(query),
+            con=self.engine,
+            params=params or {}
+        )
+        
+    def fetch_dataframe_chunks(
+        self,
+        query: str,
+        params: dict | None = None,
+        chunk_size: int = 100000
+    ):
+        return pd.read_sql(
+            sql=text(query),
+            con=self.engine,
+            params=params or {},
+            chunksize=chunk_size
+        )
+    
     def insert_dataframe(
         self,
         df: pd.DataFrame,
         schema: str,
         table: str
     ):
+        if df.empty:
+            return
+        
         df.to_sql(
             name=table,
             schema=schema,

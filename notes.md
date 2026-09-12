@@ -1,0 +1,1 @@
+- Mudança de ".to_sql" do pandas para "insert_many" do driver do banco de dados (ganho de performance)
