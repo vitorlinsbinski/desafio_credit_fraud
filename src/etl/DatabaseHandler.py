@@ -6,6 +6,15 @@ class DatabaseHandler:
     def __init__(self, engine: Engine):
         self.engine = engine
     
+    def check_connection(self) -> bool:
+        try:
+            with self.engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+                
+            return True
+        except Exception:
+            return False
+    
     def execute(self, query: str, params: dict | None = None):
         with self.engine.begin() as conn:
             conn.execute(
@@ -41,5 +50,6 @@ class DatabaseHandler:
             con=self.engine,
             if_exists="append",
             index=False,
-            method="multi"
+            method="multi",
+            chunksize=2000
         )
