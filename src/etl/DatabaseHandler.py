@@ -22,12 +22,18 @@ class DatabaseHandler:
                 params or {}
             )
     
-    def fetch_all(self, query: str, params: dict | None = None):
+    def fetch_all(
+        self,
+        query: str,
+        params: dict | None = None
+    ):
         with self.engine.connect() as conn:
             result = conn.execute(
                 text(query),
                 params or {}
             )
+
+            return result.mappings().all()
     
     def fetch_one(self, query: str, params: dict | None = None):
         with self.engine.connect() as conn:

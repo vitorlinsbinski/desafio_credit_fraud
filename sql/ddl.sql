@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS raw;
 
 CREATE SCHEMA IF NOT EXISTS transformed;
 
-CREATE SCHEMA IF NOT EXISTS data_quality;
+CREATE SCHEMA IF NOT EXISTS audit;
 
 CREATE SCHEMA IF NOT EXISTS analytics;
 
@@ -51,12 +51,13 @@ CREATE TABLE transformed.credit_fraud (
     execution_id VARCHAR(255) NOT NULL,
     -- Hash calculado com dados não tratados da RAW
     source_hash CHAR(64) NOT NULL,
+    source_row_number BIGINT,
     -- Hash calculado com dados já tratados da TRANSFORMED
     record_hash CHAR(64) NOT NULL PRIMARY KEY,
     -- Timestamp de quando o registro foi transformado
     transformed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ---------------------------------------------------
-    transaction_datetime TIMESTAMP,
+    transaction_timestamp TIMESTAMP,
     sending_address VARCHAR(255),
     receiving_address VARCHAR(255),
     amount NUMERIC(18, 2),
@@ -75,4 +76,50 @@ CREATE INDEX idx_transformed_credit_fraud_source_hash ON transformed.credit_frau
 
 CREATE INDEX idx_transformed_credit_fraud_execution_id ON transformed.credit_fraud (execution_id);
 
-CREATE INDEX idx_transformed_credit_fraud_transaction_datetime ON transformed.credit_fraud (transaction_datetime);
+CREATE INDEX idx_transformed_credit_fraud_transaction_timestamp ON transformed.credit_fraud (transaction_timestamp);
+
+CREATE TABLE IF NOT EXISTS audit.data_quality_error (
+    id BIGSERIAL PRIMARY KEY,
+    execution_id VARCHAR(100) NOT NULL,
+    source_hash CHAR(64) NOT NULL,
+    source_row_number BIGINT,
+    source_table VARCHAR(150) NOT NULL,
+    target_table VARCHAR(150) NOT NULL,
+    column_name VARCHAR(150),
+    error_type VARCHAR(100) NOT NULL,
+    error_message TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_audit_data_quality_error_execution_id ON audit.data_quality_error (execution_id);
+
+CREATE INDEX idx_audit_data_quality_error_target_table ON audit.data_quality_error (target_table);
+
+CREATE TABLE analytics.risk_score_per_location (
+    location_region VARCHAR(150) PRIMARY KEY,
+    avg_risk_score NUMERIC(10, 6) NOT NULL,
+    total_records BIGINT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE analytics.top_receiving_address (
+    receiving_address VARCHAR(255) PRIMARY KEY,
+    amount NUMERIC(18, 6) NOT NULL,
+    transaction_timestamp TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE audit.data_quality_metric (
+    id BIGSERIAL PRIMARY KEY,
+    execution_id VARCHAR(255) NOT NULL,
+    target_table VARCHAR(255) NOT NULL,
+    total_records INTEGER NOT NULL,
+    valid_records INTEGER NOT NULL,
+    invalid_records INTEGER NOT NULL,
+    total_violations INTEGER NOT NULL,
+    conformity_percentage NUMERIC(5, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (execution_id, target_table)
+);
+
+CREATE INDEX idx_audit_data_quality_metric_execution_id ON audit.data_quality_metric (execution_id);
