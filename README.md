@@ -33,6 +33,9 @@ flowchart LR
     MET --> REPORT
 ```
 
+![Diagrama do desafio](/assets/diagrama_desafio_localiza.png)
+
+
 A solução utiliza dois bancos PostgreSQL independentes:
 
 - `postgres`: banco interno do Airflow, usado para metadados da orquestração;
