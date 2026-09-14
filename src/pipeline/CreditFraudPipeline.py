@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -318,10 +319,6 @@ class CreditFraudPipeline:
                 (i + 1),
                 len(cleaned_chunk)
             )
-            
-            if i == len(df_raw_chunks) - 1:
-                logger.info("Schema APÓS a limpeza dos dados (último chunk):")
-                cleaned_chunk.info()
         
     def load_risk_score_per_location(self):
         TARGET_TABLE = "risk_score_per_location"
